@@ -14,6 +14,9 @@ use meshbot::*;
 // Also, the supposedly simpler send_text() method would be nice, but...?
 // https://github.com/meshtastic/rust/issues/63#issuecomment-3415187743
 
+
+const MESH_BROADCAST: u32 = u32::MAX;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let mut opts = OptsCommon::parse();
@@ -45,7 +48,8 @@ async fn main() -> anyhow::Result<()> {
                     let msg = String::from_utf8_lossy(&rx_data.payload);
                     info!("Got MSG: \"{msg}\"");
 
-                    if msg == "!ping" {
+                    // responding to broadcast packets must be specifically enabled
+                    if msg == "!ping" && (opts.broadcast || rx_packet.to != MESH_BROADCAST) {
                         let hop_count = rx_packet.hop_start - rx_packet.hop_limit;
                         let mut msg = format!("Pong, {hop_count} hops");
 

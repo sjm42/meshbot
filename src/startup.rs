@@ -14,7 +14,10 @@ pub struct OptsCommon {
     pub trace: bool,
 
     #[arg(long, short)]
-    pub address: String
+    pub address: String,
+
+    #[arg(long, short)]
+    pub broadcast: bool,
 }
 
 impl OptsCommon {
@@ -39,9 +42,9 @@ impl OptsCommon {
             .with_target(false)
             .init();
         info!("Starting up {name}...");
-        // debug!("Git branch: {}", env!("GIT_BRANCH"));
-        // debug!("Git commit: {}", env!("GIT_COMMIT"));
-        // debug!("Source timestamp: {}", env!("SOURCE_TIMESTAMP"));
+        debug!("Git branch: {}", env!("GIT_BRANCH"));
+        debug!("Git commit: {}", env!("GIT_COMMIT"));
+        debug!("Source timestamp: {}", env!("SOURCE_TIMESTAMP"));
         debug!("Compiler version: {}", env!("RUSTC_VERSION"));
     }
 }
