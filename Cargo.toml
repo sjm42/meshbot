@@ -23,8 +23,9 @@ anyhow = "1"
 
 
 [profile.release]
-opt-level = 3
+opt-level = "z"
 codegen-units = 1
 lto = "fat"
+strip="symbols"
 
 # EOF
