@@ -65,11 +65,10 @@ async fn main() -> anyhow::Result<()> {
                         let tx_data = Data {
                             portnum: PortNum::TextMessageApp as i32,
                             payload: msg.as_bytes().to_vec(),
-                            want_response: true,
                             ..Default::default()
                         };
 
-                        // Create the payload variant, mesh packet for broadcast
+                        // Create the payload variant
                         let tx_packet = Some(to_radio::PayloadVariant::Packet(MeshPacket {
                             channel: 0,
                             from: 0,            // Will be filled by the device
@@ -77,17 +76,13 @@ async fn main() -> anyhow::Result<()> {
                             id: 0,              // Will be assigned by the device
                             priority: mesh_packet::Priority::Default as i32,
                             hop_limit: 7,
-                            want_ack: true,
                             payload_variant: Some(mesh_packet::PayloadVariant::Decoded(tx_data)),
                             ..Default::default()
                         }));
 
-                        // Send using the stream API's send_to_radio_packet method
-                        info!("Attempting to send packet: {tx_packet:?}");
-
-                        match stream_api.send_to_radio_packet(tx_packet).await {
-                            Ok(_) => info!("Successfully sent reply to mesh"),
-                            Err(e) => error!("Failed to send: {e}"),
+                        debug!("Sending packet: {tx_packet:?}");
+                        if let Err(e) = stream_api.send_to_radio_packet(tx_packet).await {
+                             error!("Failed to send: {e}");
                         }
                     }
                 }
