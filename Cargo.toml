@@ -1,0 +1,30 @@
+# Cargo.toml
+
+[package]
+authors = ["Sami J. Mäkinen <sjm@iki.fi>"]
+edition = "2024"
+readme = "README.md"
+name = "meshbot"
+version = "0.1.0"
+
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+meshtastic = "0"
+tokio = { version = "1", features = ["rt", "net", "io-util"] }
+tracing = { version = "0", features = ["log"] }
+tracing-subscriber = "0"
+
+
+[build-dependencies]
+build-data = "0"
+anyhow = "1"
+
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+lto = "fat"
+
+# EOF
