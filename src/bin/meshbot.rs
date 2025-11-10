@@ -31,45 +31,59 @@ async fn main() -> anyhow::Result<()> {
         debug!("Received: {decoded:?}");
         if let FromRadio {
             id: _id,
-            payload_variant: Some(from_radio::PayloadVariant::Packet(meshpacket)),
+            payload_variant: Some(from_radio::PayloadVariant::Packet(rx_packet)),
         } = decoded
         {
-            let mp = meshpacket.clone();
-            if let Some(mesh_packet::PayloadVariant::Decoded(data)) = mp.payload_variant
-                && !meshpacket.via_mqtt
+            let mp = rx_packet.clone();
+            if let Some(mesh_packet::PayloadVariant::Decoded(rx_data)) = mp.payload_variant
+                && !rx_packet.via_mqtt
+            // we don't want MQTT packets here
             {
-                info!("Got non-MQTT meshpacket: {meshpacket:?}");
-                if data.portnum == PortNum::TextMessageApp as i32 {
-                    debug!("*** Got MSG data: {data:?}");
-                    let msg = String::from_utf8_lossy(&data.payload);
+                info!("Received meshpacket: {rx_packet:?}");
+                if rx_data.portnum == PortNum::TextMessageApp as i32 {
+                    debug!("*** Got MSG data: {rx_data:?}");
+                    let msg = String::from_utf8_lossy(&rx_data.payload);
                     info!("Got MSG: \"{msg}\"");
 
                     if msg == "!ping" {
+                        let hop_count = rx_packet.hop_start - rx_packet.hop_limit;
+                        let mut msg = format!("Pong, {hop_count} hops");
+
+                        if hop_count == 0 {
+                            msg.push_str(&format!(
+                                ", SNR {:+.1}dB, RSSI {}dBm",
+                                rx_packet.rx_snr, rx_packet.rx_rssi
+                            ));
+                        }
+                        info!("Sending reply: \"{msg}\"");
+
                         // Create a text message data payload
-                        let data = Data {
+                        let tx_data = Data {
                             portnum: PortNum::TextMessageApp as i32,
-                            payload: "pong!".as_bytes().to_vec(),
-                            want_response: false,
+                            payload: msg.as_bytes().to_vec(),
+                            want_response: true,
                             ..Default::default()
                         };
 
                         // Create the payload variant, mesh packet for broadcast
-                        let payload_variant = Some(to_radio::PayloadVariant::Packet(MeshPacket {
-                            to: 0xffffffff, // Broadcast address
-                            from: 0,        // Will be filled by the device
+                        let tx_packet = Some(to_radio::PayloadVariant::Packet(MeshPacket {
                             channel: 0,
-                            id: 0, // Will be assigned by the device
+                            from: 0,            // Will be filled by the device
+                            to: rx_packet.from, // do not send reply as broadcast but DM instead
+                            id: 0,              // Will be assigned by the device
                             priority: mesh_packet::Priority::Default as i32,
-                            payload_variant: Some(mesh_packet::PayloadVariant::Decoded(data)),
+                            hop_limit: 7,
+                            want_ack: true,
+                            payload_variant: Some(mesh_packet::PayloadVariant::Decoded(tx_data)),
                             ..Default::default()
                         }));
 
                         // Send using the stream API's send_to_radio_packet method
-                        info!("Attempting to send packet to Meshtastic radio...");
+                        info!("Attempting to send packet: {tx_packet:?}");
 
-                        match stream_api.send_to_radio_packet(payload_variant).await {
-                            Ok(_) => info!("Successfully sent to Meshtastic"),
-                            Err(e) => error!("Failed to send to Meshtastic: {e}"),
+                        match stream_api.send_to_radio_packet(tx_packet).await {
+                            Ok(_) => info!("Successfully sent reply to mesh"),
+                            Err(e) => error!("Failed to send: {e}"),
                         }
                     }
                 }

@@ -5,7 +5,7 @@ authors = ["Sami J. Mäkinen <sjm@iki.fi>"]
 edition = "2024"
 readme = "README.md"
 name = "meshbot"
-version = "0.1.0"
+version = "0.1.1"
 
 
 [dependencies]
